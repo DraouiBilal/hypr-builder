@@ -1,0 +1,12 @@
+FROM hypr-builder:base-latest as BUILDER
+
+ARG DEPENDENCY=hyprwayland-scanner
+
+RUN git clone https://github.com/hyprwm/${DEPENDENCY}.git 
+
+WORKDIR /hypr/${DEPENDENCY}
+
+RUN cmake -DCMAKE_INSTALL_PREFIX=/opt/${DEPENDENCY} -B build \
+ && cmake --build build -j"$(nproc)" \
+ && cmake --install build
+

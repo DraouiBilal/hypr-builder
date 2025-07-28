@@ -1,0 +1,23 @@
+FROM hypr-builder:aquamarine-latest as aquamarine
+FROM hypr-builder:hyprlang-latest as hyprlang
+
+FROM hypr-builder:base-latest as BUILDER
+
+COPY --from=aquamarine /opt/aquamarine /opt/aquamarine
+
+ENV PATH="/opt/hyprlang/bin:/opt/aquamarine/bin:${PATH}"
+ENV LD_LIBRARY_PATH="/opt/hyprlang/lib:/opt/aquamarine/lib:${LD_LIBRARY_PATH}"
+ENV CMAKE_PREFIX_PATH="/opt/hyprlang:/opt/aquamarine:${CMAKE_PREFIX_PATH}"
+ENV PKG_CONFIG_PATH="/opt/hyprlang/lib/pkgconfig:/opt/aquamarine/lib/pkgconfig:${PKG_CONFIG_PATH}"
+
+RUN echo "/opt/aquamarine/lib" > /etc/ld.so.conf.d/aquamarine.conf && ldconfig
+RUN echo "/opt/hyprlang/lib" > /etc/ld.so.conf.d/hyprlang.conf && ldconfig 
+
+ARG DEPENDENCY=Hyprland
+
+RUN git clone --recursive https://github.com/hyprwm/${DEPENDENCY}.git 
+
+WORKDIR /hypr/${DEPENDENCY}
+
+RUN make all && make install
+

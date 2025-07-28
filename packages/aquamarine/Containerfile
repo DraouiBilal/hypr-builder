@@ -1,0 +1,22 @@
+FROM hypr-builder:hyprwayland-scanner-latest as hyprwayland-scanner
+FROM hypr-builder:hyprutils-latest as hyprutils
+
+FROM hypr-builder:base-latest as BUILDER
+
+COPY --from=hyprwayland-scanner /opt/hyprwayland-scanner /opt/hyprwayland-scanner
+COPY --from=hyprutils /opt/hyprutils /opt/hyprutils
+
+ENV PATH="/opt/hyprutils/bin:/opt/hyprwayland-scanner/bin:${PATH}"
+ENV LD_LIBRARY_PATH="/opt/hyprutils/lib:/opt/hyprwayland-scanner/lib:${LD_LIBRARY_PATH}"
+ENV CMAKE_PREFIX_PATH="/opt/hyprutils:/opt/hyprwayland-scanner:${CMAKE_PREFIX_PATH}"
+
+ARG DEPENDENCY=aquamarine
+
+RUN git clone https://github.com/hyprwm/${DEPENDENCY}.git 
+
+WORKDIR /hypr/${DEPENDENCY}
+
+RUN cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/${DEPENDENCY} -S . -B build \
+ && cmake --build build --config Release --target all -j$(nproc 2>/dev/null || getconf _NPROCESSORS_CONF) \
+ && cmake --install build
+

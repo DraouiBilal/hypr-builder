@@ -1,0 +1,27 @@
+FROM hypr-builder:hyprwayland-scanner-latest as hyprwayland-scanner
+
+FROM hypr-builder:base-latest as BUILDER
+
+COPY --from=hyprwayland-scanner /opt/hyprwayland-scanner /opt/hyprwayland-scanner
+
+ENV PATH="/opt/hyprwayland-scanner/bin:${PATH}"
+ENV LD_LIBRARY_PATH="/opt/hyprwayland-scanner/lib:${LD_LIBRARY_PATH}"
+ENV CMAKE_PREFIX_PATH="/opt/hyprwayland-scanner:${CMAKE_PREFIX_PATH}"
+
+ARG DEPENDENCY=hyprutils
+
+RUN git clone https://github.com/hyprwm/${DEPENDENCY}.git 
+
+WORKDIR /hypr/${DEPENDENCY}
+
+ENV CXXFLAGS="-std=c++23"
+
+RUN cmake --no-warn-unused-cli \
+    -DCMAKE_CXX_STANDARD=23 \
+    -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/opt/${DEPENDENCY} \
+    -DBUILD_TESTING=OFF \
+    -S . -B ./build && \
+    cmake --build ./build --config Release --target all -j$(nproc) && \
+    cmake --install build
