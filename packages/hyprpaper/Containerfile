@@ -27,13 +27,13 @@ RUN echo "/opt/aquamarine/lib" > /etc/ld.so.conf.d/aquamarine.conf && \
     ldconfig
 
 
-ARG DEPENDENCY=Hyprland
+ARG DEPENDENCY=hyprpaper
 
 RUN git clone --recursive https://github.com/hyprwm/${DEPENDENCY}.git  
 
 WORKDIR /hypr/${DEPENDENCY}
 
-RUN git checkout v0.39.1 && rm -rf subprojects/wlroots-hyprland && git submodule update --init --recursive
+RUN git checkout v0.7.0
 
 RUN wget https://gitlab.freedesktop.org/libinput/libinput/-/archive/1.26.0/libinput-1.26.0.tar.gz && \
     tar -xzf libinput-1.26.0.tar.gz && \
@@ -43,7 +43,5 @@ RUN wget https://gitlab.freedesktop.org/libinput/libinput/-/archive/1.26.0/libin
     ninja -C build install && \
     ldconfig
 
-RUN make all
-
-
-
+RUN cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -S . -B ./build && \
+    cmake --build ./build --config Release --target hyprpaper -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`

@@ -2,7 +2,7 @@ FROM ubuntu:24.04 as BUILDER
 
 # Build depencencies
 RUN apt update && \
-    apt install -y meson wget build-essential ninja-build cmake-extras cmake gettext gettext-base fontconfig libfontconfig-dev libffi-dev libxml2-dev libdrm-dev libxkbcommon-x11-dev libxkbregistry-dev libxkbcommon-dev libpixman-1-dev libudev-dev libseat-dev seatd libxcb-dri3-dev libegl-dev libgles2 libegl1-mesa-dev glslang-tools libinput-bin libxcb-composite0-dev libavutil-dev libavcodec-dev libavformat-dev libxcb-ewmh2 libxcb-ewmh-dev libxcb-present-dev libxcb-icccm4-dev libxcb-render-util0-dev libxcb-res0-dev libxcb-xinput-dev libtomlplusplus3 libre2-dev xdg-desktop-portal-wlr git libpugixml-dev libwayland-dev wayland-protocols libgbm-dev hwdata scdoc libevdev-dev libmtdev-dev python3-pip libwacom-dev libgtk-3-dev clang-17 libc++-dev libc++abi-dev gcc-14 g++-14
+    apt install -y meson wget build-essential ninja-build cmake-extras cmake gettext gettext-base fontconfig libfontconfig-dev libffi-dev libxml2-dev libdrm-dev libxkbcommon-x11-dev libxkbregistry-dev libxkbcommon-dev libpixman-1-dev libudev-dev libseat-dev seatd libxcb-dri3-dev libegl-dev libgles2 libegl1-mesa-dev glslang-tools libinput-bin libxcb-composite0-dev libavutil-dev libavcodec-dev libavformat-dev libxcb-ewmh2 libxcb-ewmh-dev libxcb-present-dev libxcb-icccm4-dev libxcb-render-util0-dev libxcb-res0-dev libxcb-xinput-dev libtomlplusplus3 libre2-dev xdg-desktop-portal-wlr git libpugixml-dev libgbm-dev hwdata scdoc libevdev-dev libmtdev-dev python3-pip libwacom-dev libgtk-3-dev clang-17 libc++-dev libc++abi-dev gcc-14 g++-14 libzip-dev librsvg2-dev libmagic1 libmagic-dev graphviz doxygen xsltproc xmlto libx11-xcb1 libxcb1 libxcb-util1 libxcb-keysyms1 libxcb-image0 libxcb-shm0 libxcb-icccm4 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-cursor0 libxcb-randr0-dev libxcb-xtest0-dev libxcb-xinerama0-dev libxcb-shape0-dev libxcb-xkb-dev autotools-dev autoconf automake libtool xutils-dev xcb-proto python3-xcbgen  libliftoff-dev xwayland libxcb1-dev libxcb-keysyms1-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-shm0-dev libxcb-xfixes0-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-util-dev libsdbus-c++-dev libpam0g-dev
 # Install CMAKE > 3.30
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.30.3/cmake-3.30.3-linux-x86_64.tar.gz && tar -xzvf cmake-3.30.3-linux-x86_64.tar.gz && mv cmake-3.30.3-linux-x86_64 /opt/cmake-3.30.3 && ln -s /opt/cmake-3.30.3/bin/cmake /usr/local/bin/cmake && mkdir /deps
 
@@ -11,9 +11,37 @@ WORKDIR /deps
 
 RUN git clone https://gitlab.freedesktop.org/libinput/libinput.git && cd libinput && meson setup build && meson compile -C build && meson install -C build
 RUN git clone https://gitlab.freedesktop.org/emersion/libdisplay-info.git && cd libdisplay-info && meson setup build && meson compile -C build && meson install -C build
+RUN git clone https://gitlab.freedesktop.org/wayland/wayland && cd wayland && meson build/ --prefix=/usr/local && ninja -C build && ninja -C build/ install
+RUN git clone https://gitlab.freedesktop.org/wayland/wayland-protocols && cd wayland-protocols && meson build/ --prefix=/usr/local && ninja -C build && ninja -C build/ install
+RUN git clone --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-errors.git && cd libxcb-errors && ./autogen.sh
+RUN cd libxcb-errors && ./configure && make && make install && ldconfig
+
 
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 140 \
     --slave /usr/bin/g++ g++ /usr/bin/g++-14 && \
     update-alternatives --config gcc
+
+# Define environment
+ENV TOMLPP_VERSION=3.12.0
+ENV INSTALL_PREFIX=/usr/local
+ENV INCLUDE_DIR=$INSTALL_PREFIX/include/toml++
+ENV PKGCONFIG_DIR=$INSTALL_PREFIX/lib/pkgconfig
+
+# Install tomlplusplus and create pkg-config file
+RUN git clone --depth=1 https://github.com/marzer/tomlplusplus.git /tmp/tomlplusplus && \
+    mkdir -p ${INCLUDE_DIR} && \
+    cp -r /tmp/tomlplusplus/* ${INCLUDE_DIR} && \
+    mkdir -p ${PKGCONFIG_DIR} && \
+    echo "prefix=${INSTALL_PREFIX}" > ${PKGCONFIG_DIR}/tomlplusplus.pc && \
+    echo "includedir=\${prefix}/include" >> ${PKGCONFIG_DIR}/tomlplusplus.pc && \
+    echo "" >> ${PKGCONFIG_DIR}/tomlplusplus.pc && \
+    echo "Name: tomlplusplus" >> ${PKGCONFIG_DIR}/tomlplusplus.pc && \
+    echo "Description: Header-only TOML parser and serializer for C++" >> ${PKGCONFIG_DIR}/tomlplusplus.pc && \
+    echo "Version: ${TOMLPP_VERSION}" >> ${PKGCONFIG_DIR}/tomlplusplus.pc && \
+    echo "Cflags: -I\${includedir}" >> ${PKGCONFIG_DIR}/tomlplusplus.pc
+
+
+# Optionally export PKG_CONFIG_PATH (if needed at runtime/build)
+ENV PKG_CONFIG_PATH=${PKGCONFIG_DIR}:$PKG_CONFIG_PATH
 
 WORKDIR /hypr

@@ -1,0 +1,24 @@
+build-order:
+  - base
+  - hyprwayland-scanner
+  - hyprutils
+  - aquamarine
+  - hyprlang
+  - hyprgraphics
+  - hyprcursor
+  - hyprpaper
+  - hypridle
+  - hyprlock
+  - Hyprland
+
+executables:
+  Hyprland:
+    - /hypr/Hyprland/build/Hyprland
+    - /hypr/Hyprland/build/hyprctl/hyprctl
+    - /hypr/Hyprland/build/hyprpm/hyprpm
+  hyprpaper:
+    - /hypr/hyprpaper/build/hyprpaper
+  hyprlock:
+    - /hypr/hyprlock/build/hyprlock
+  hypridle:
+    - /hypr/hypridle/build/hypridle
